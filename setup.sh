@@ -38,6 +38,14 @@ if [ -f "$PACK_DIR/config/SOUL.md" ]; then
     echo "  ✅ SOUL.md 已复制"
 fi
 
+# Copy .env template (only if .env doesn't exist)
+if [ -f "$PACK_DIR/config/.env.template" ] && [ ! -f "$HERMES_HOME/.env" ]; then
+    cp "$PACK_DIR/config/.env.template" "$HERMES_HOME/.env"
+    echo "  ✅ .env 模板已创建（请填入 API Key）"
+elif [ -f "$HERMES_HOME/.env" ]; then
+    echo "  ✅ .env 已存在，保留现有配置"
+fi
+
 # Step 3: Install skills
 echo ""
 echo "⏳ Step 3: 安装本地技能"

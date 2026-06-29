@@ -4,12 +4,12 @@
 .DESCRIPTION
     在新电脑上自动部署 Hermes Agent 及全套配置：
     - 安装 Hermes Agent
-    - 复制 config.yaml / SOUL.md
+    - 复制 config.yaml / SOUL.md / .env.template
     - 安装本地技能
     - 安装额外 Python 依赖 (ddgs)
 .NOTES
     需要管理员权限运行（用于安装 winget 包等）
-    需要手动设置 API Key（见部署后步骤）
+    部署后需在 .env 中填入 API Key（见部署后步骤）
 #>
 
 param(
@@ -108,6 +108,17 @@ $soulDst = Join-Path $HermesHome "SOUL.md"
 if (Test-Path $soulSrc) {
     Copy-Item -Path $soulSrc -Destination $soulDst -Force
     Write-Host "  ✅ SOUL.md 已复制"
+}
+
+# 复制 .env 模板（仅当 .env 不存在时）
+$envSrc = Join-Path $PackDir "config" ".env.template"
+$envDst = Join-Path $HermesHome ".env"
+if ((Test-Path $envSrc) -and -not (Test-Path $envDst)) {
+    Copy-Item -Path $envSrc -Destination $envDst -Force
+    Write-Host "  ✅ .env 模板已创建（请填入 API Key）"
+}
+elseif (Test-Path $envDst) {
+    Write-Host "  ✅ .env 已存在，保留现有配置"
 }
 
 # ═══════════════════════════════════════════════
