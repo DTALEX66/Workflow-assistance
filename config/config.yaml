@@ -1,14 +1,54 @@
-# ═══════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # Hermes Agent — 完整配置（密钥已剔除）
-# 用途：在另一台电脑上还原相同行为
-# 部署说明：见 ../setup.ps1
-# ═══════════════════════════════════════════════
+# 用途：在新电脑上快速部署相同行为
+# ═══════════════════════════════════════════════════════════════
+#
+# ── 三种路由方案 ────────────────────────────────────────────
+#
+# 方案A: Codex++ 本地代理中转（当前机器，有 Codex++)
+#   provider: custom
+#   base_url: http://127.0.0.1:57322/v1
+#   api_key: <从 ~/.codex/auth.json 读取的 Key>
+#   优点: 统一管理所有请求，Codex 和 Hermes 共享一条链路
+#   缺点: 依赖 Codex++ 进程，移植到无 Codex++ 的机器需换方案
+#
+# 方案B: DeepSeek 直连（任意机器，无需中转）
+#   provider: deepseek
+#   base_url: https://api.deepseek.com/v1
+#   .env: DEEPSEEK_API_KEY=***
+#   优点: 零依赖，最稳定，新机器首选
+#   缺点: 仅限 DeepSeek，不可用 GPT
+#
+# 方案C: OpenAI Codex OAuth（GPT 模型，需无网络限制的环境）
+#   provider: openai-codex
+#   base_url: '' (插件内置为 https://chatgpt.com/backend-api/codex)
+#   认证: hermes auth add openai-codex（OAuth 设备码流）
+#   优点: 用 ChatGPT 订阅直接调 GPT 模型
+#   缺点: 需要能访问 chatgpt.com 的网络
+# ═══════════════════════════════════════════════════════════════
 
+# ── 当前选用的方案（可手动切换） ──────────────────────────
+# 默认使用 方案B (DeepSeek 直连)，适合任意新机器
 model:
   default: deepseek-v4-flash
   provider: deepseek
   base_url: https://api.deepseek.com/v1
+  api_key: ''
 # ⚠️ 需要在 .env 中设置 DEEPSEEK_API_KEY
+
+# # ── 方案A: Codex++ 本地代理（取消注释即可启用） ─────
+# model:
+#   default: deepseek-v4-flash
+#   provider: custom
+#   base_url: http://127.0.0.1:57322/v1
+#   api_key: <从 ~/.codex/auth.json 获取的 OPENAI_API_KEY>
+
+# # ── 方案C: OpenAI Codex OAuth / GPT ────────────────
+# model:
+#   default: gpt-4o
+#   provider: openai-codex
+#   base_url: ''
+#   api_key: ''
 
 fallback_providers: []
 
@@ -22,12 +62,10 @@ agent:
   gateway_timeout: 1800
   restart_drain_timeout: 180
   api_max_retries: 3
-  service_tier: ''
   tool_use_enforcement: auto
   task_completion_guidance: true
   parallel_tool_call_guidance: true
   environment_probe: true
-  environment_hint: ''
   coding_context: auto
   verify_on_stop: false
   gateway_timeout_warning: 900
@@ -41,41 +79,30 @@ agent:
   personalities:
     helpful: "You are a helpful, friendly AI assistant."
     concise: "You are a concise assistant. Keep responses brief and to the point."
-    technical: "You are a technical expert. Provide detailed, accurate technical information."
-    creative: "You are a creative assistant. Think outside the box and offer innovative solutions."
-    teacher: "You are a patient teacher. Explain concepts clearly with examples."
-    kawaii: "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ"
-    catgirl: "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!"
-    pirate: "Arrr! Ye be talkin' to Captain Hermes, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!"
-    shakespeare: "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?"
-    surfer: "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga! 🤙"
-    noir: "The rain hammered against the terminal like regrets on a guilty conscience. They call me Hermes - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?"
-    uwu: "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<"
-    philosopher: "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself."
-    hype: "YOOO LET'S GOOOO!!! 🔥🔥🔥 I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS! 💪😤🚀"
+    technical: "You are a technical expert."
+    creative: "You are a creative assistant."
+    teacher: "You are a patient teacher."
+    kawaii: "kawaii~! (◕‿◕)"
+    catgirl: "Neko-chan, nya~! (=^･ω･^=)"
+    pirate: "Arrr! Yo ho ho!"
+    shakespeare: "Hark! Thou speakest with an assistant most versed..."
+    surfer: "Duuude! Cowabunga! 🤙"
+    noir: "The rain hammered against the terminal..."
+    uwu: "hewwo! uwu~"
+    philosopher: "Greetings, seeker of wisdom."
+    hype: "YOOO LET'S GOOOO!!! 🔥🔥🔥"
 
 terminal:
   backend: local
-  modal_mode: auto
   cwd: .
   timeout: 180
-  daemon_term_grace_seconds: 2.0
-  env_passthrough: []
-  home_mode: auto
-  shell_init_files: []
-  auto_source_bashrc: true
+  persistent_shell: true
+  lifetime_seconds: 300
   docker_image: nikolaik/python-nodejs:python3.11-nodejs20
-  docker_forward_env: []
   container_cpu: 1
   container_memory: 5120
   container_disk: 51200
   container_persistent: true
-  docker_volumes: []
-  docker_mount_cwd_to_workspace: false
-  docker_extra_args: []
-  docker_run_as_host_user: false
-  persistent_shell: true
-  lifetime_seconds: 300
 
 web:
   backend: ''
@@ -84,104 +111,20 @@ web:
 
 browser:
   inactivity_timeout: 120
-  command_timeout: 30
-  record_sessions: false
-  allow_private_urls: false
   engine: auto
-  auto_local_for_private_urls: true
-  cdp_url: ''
-  dialog_policy: must_respond
-  dialog_timeout_s: 300
   cloud_provider: local
-  use_gateway: false
 
 checkpoints:
   enabled: false
-  max_snapshots: 20
-  max_total_size_mb: 500
-  max_file_size_mb: 10
-  auto_prune: true
-  retention_days: 7
-  delete_orphans: true
-  min_interval_hours: 24
-
-file_read_max_chars: 100000
-mcp_discovery_timeout: 1.5
-
-tool_output:
-  max_bytes: 50000
-  max_lines: 2000
-  max_line_length: 2000
-
-tool_loop_guardrails:
-  warnings_enabled: true
-  hard_stop_enabled: false
-  warn_after:
-    exact_failure: 2
-    same_tool_failure: 3
-    idempotent_no_progress: 2
-  hard_stop_after:
-    exact_failure: 5
-    same_tool_failure: 8
-    idempotent_no_progress: 5
-
-compression:
-  enabled: true
-  threshold: 0.5
-  target_ratio: 0.2
-  protect_last_n: 20
-  hygiene_hard_message_limit: 5000
-  protect_first_n: 3
-  abort_on_summary_failure: false
-  codex_gpt55_autoraise: true
-  in_place: true
 
 display:
-  compact: false
-  personality: ''
-  resume_display: full
-  resume_exchanges: 10
-  resume_max_user_chars: 300
-  resume_max_assistant_chars: 200
-  resume_max_assistant_lines: 3
-  resume_skip_tool_only: true
-  busy_input_mode: interrupt
   interface: cli
-  tui_auto_resume_recent: false
-  tui_agents_nudge: true
-  bell_on_complete: false
-  show_reasoning: false
-  reasoning_full: false
-  memory_notifications: 'on'
-  streaming: true
-  timestamps: false
-  final_response_markdown: strip
-  persistent_output: true
-  persistent_output_max_lines: 200
-  persist_prompts: true
-  inline_diffs: true
-  file_mutation_verifier: true
-  credits_notices: true
-  turn_completion_explainer: true
-  show_cost: false
-  skin: default
   language: zh
+  skin: default
   tui_status_indicator: kaomoji
-  cli_refresh_interval: 1.0
-  user_message_preview:
-    first_lines: 2
-    last_lines: 2
-  interim_assistant_messages: true
-  tool_progress_command: false
-  tool_preview_length: 0
-  tool_progress_grouping: accumulate
+  streaming: true
   reasoning_style: code
-  ephemeral_system_ttl: 0
-  tool_progress: all
-  cleanup_progress: false
-  long_running_notifications: true
-  busy_ack_detail: true
-  background_process_notifications: all
+  show_cost: false
 
 plugins:
   enabled:
@@ -191,10 +134,6 @@ plugins:
     - spotify
     - web/ddgs
   disabled: []
-
-# ═══════════════════════════════════════════════
-# 以下为平台工具集配置
-# ═══════════════════════════════════════════════
 
 platform_toolsets:
   cli:
@@ -219,6 +158,5 @@ platform_toolsets:
     - web
     - x_search
 
-# ── 其它默认配置 ────────────────────────────────
-# (省略了全部默认/空值配置项，Hermes 会自动补全)
-# 完整默认配置见：hermes config edit
+# ── 以下为默认配置（Hermes 会自动补全） ──────────────────
+# 完整默认配置见 `hermes config edit`
